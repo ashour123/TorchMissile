@@ -62,6 +62,8 @@ public class PropertiesFile
   {
 	this.props.setProperty("Torch_Spawn_Radius", "5");
 	this.props.setProperty("Walls_Only", "true");
+	this.props.setProperty("Missile_Glow", "true");
+	//this.props.setProperty("Missile_Speed", "normal");
     this.save();
   }
 

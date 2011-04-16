@@ -18,15 +18,21 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.nijikokun.bukkit.Permissions.Permissions;
+
 
 public class TorchMissile extends JavaPlugin
 {
 	static Server server;
 	static Plugin plugin;
 	static int size = 5;
+	static int Missile_Range = 250;
 	static boolean WO = true;
+	static boolean Missile_Glow = true;
+	//static String Missile_Speed = "normal";
 	static List<Player> Clicks = new ArrayList<Player>();
 	PropertiesFile TorchConfig;
+	private static Permissions Permissions = null;
 	
 	private final TorchPlayerListener playerListener = new TorchPlayerListener();
 	
@@ -38,6 +44,7 @@ public class TorchMissile extends JavaPlugin
 		registerEvents();
 		server = this.getServer();
 		plugin = this;
+		setupPermissions();
     }
 	public void onDisable()
     {
@@ -49,6 +56,7 @@ public class TorchMissile extends JavaPlugin
     }
 	public boolean onCommand(CommandSender sender, Command command, String commandLabel, String[] args)
     {
+		/**
 		if (sender instanceof Player)
         {
 			String commandName = command.getName().toLowerCase();;
@@ -70,14 +78,19 @@ public class TorchMissile extends JavaPlugin
         }
 		else
 			return false;
+		*/
+		return false;
     }
 	public static void AddClick(final Player player)
 	{
 		if (Clicks.contains(player))
 		{
 			Clicks.remove(player);
-			ShootTorchMissile(player);
-			RemoveItem(player, 50);
+			if (checkPermissions(player) == "normal" || checkPermissions(player) == "single")
+			{
+				ShootTorchMissile(player);
+				RemoveItem(player, 50);
+			}
 		}
 		else
 		{
@@ -91,12 +104,26 @@ public class TorchMissile extends JavaPlugin
 	    	}, 1L);
 		}
 	}
-	private static void ShootTorchMissile(Player player)
+	private static void ShootTorchMissile(final Player player)
 	{
-		List<Block> Blocks_tmp = new ArrayList<Block>();
-		Blocks_tmp = player.getLineOfSight(null, 150);
-		final List<Block> Blocks = Blocks_tmp;
 		int time = 0;
+		int plus = 2;
+		long lo = 2L;
+		/**
+		if (Missile_Speed == "fast")
+		{
+			plus = 1;
+			lo = 1L;
+		}
+		else if (Missile_Speed == "slow")
+		{
+			plus = 40;
+			lo = 3L;
+		}
+		*/
+		List<Block> Blocks_tmp = new ArrayList<Block>();
+		Blocks_tmp = player.getLineOfSight(null, Missile_Range);
+		final List<Block> Blocks = Blocks_tmp;
 		for (int i = 3; i < Blocks.size(); i++)
 		{
 			final Block bl = Blocks.get(i);
@@ -105,7 +132,10 @@ public class TorchMissile extends JavaPlugin
 	    	{
 				public void run()
 				{
-					bl.setTypeId(89);
+					if (Missile_Glow)
+						bl.setTypeId(89);
+					else
+						bl.setTypeId(49);
 				}
 	    	}, 0L + time);
 			server.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable()
@@ -114,28 +144,49 @@ public class TorchMissile extends JavaPlugin
 				{
 					bl.setTypeId(id);
 					if (Blocks.indexOf(bl) == Blocks.size() - 1)
-						Torch_Explosions(bl);
+					{
+						if (checkPermissions(player) == "normal")
+							Torch_Explosion(bl);
+						else if (checkPermissions(player) == "single")
+							SingleTorch(bl);
+					}
 				}
-	    	}, 2L + time);
-			time = time + 2;
+	    	}, lo + time);
+			time = time + plus;
 		}
-		
-		/**
-		Block target = player.getTargetBlock(null, 100);
-		Location player_eyes = player.getEyeLocation();
-		Vector stuz = player_eyes.toVector();
-		Vector direct = player_eyes.getDirection();
-		direct.normalize();
-		stuz = stuz.add(direct);
-		int time = 0;
-		for (int i = 0; i < Laser_Range; i++)
+	}
+	private static void SingleTorch(Block bl)
+	{
+		WO = false;
+		int range = 1;
+		boolean placed = false;
+		World world = bl.getWorld();
+		int X = bl.getX();
+		int Y = bl.getY();
+		int Z = bl.getZ();
+		while (placed == false)
 		{
-			
+			for (int y = Y-range; y <= Y+range; y++)
+			{
+				for (int x = X-range; x <= X+range; x++)
+				{
+					for (int z = Z-range; z <= Z+range; z++)
+					{
+						Block blk = world.getBlockAt(x, y, z);
+						if ((blk.getTypeId() == 0) && (touchSolide(blk)) && (placed == false))
+						{
+							blk.setTypeId(50);
+							placed = true;
+						}
+					}
+				}
+			}
+			range++;
 		}
-		*/
+		WO = true;
 	}
 	
-	private static void Torch_Explosions(Block bl)
+	private static void Torch_Explosion(Block bl)
 	{
 		World world = bl.getWorld();
 		boolean sec = true;
@@ -173,20 +224,20 @@ public class TorchMissile extends JavaPlugin
 		int down = bl.getFace(BlockFace.DOWN).getTypeId();
 		if (WO == false)
 		{
-			if (down != 0 && down != 50 && down != 8 && down != 9)
+			if (down != 0 && down != 50 && down != 8 && down != 9 && down != 78)
     			return true;
 		}
 		else
-			if (down != 0 && down != 50 && down != 8 && down != 9)
+			if (down != 0 && down != 50 && down != 8 && down != 9 && down != 78)
     			return false;
 		
-		if (north != 0 && north != 50 && north != 8 && north != 9)
+		if (north != 0 && north != 50 && north != 8 && north != 9 && north != 78)
     		return true;
-    	else if (east != 0 && east != 50 && east != 8 && east != 9)
+    	else if (east != 0 && east != 50 && east != 8 && east != 9 && east != 78)
     		return true;
-    	else if (south != 0 && south != 50 && south != 8 && south != 9)
+    	else if (south != 0 && south != 50 && south != 8 && south != 9 && south != 78)
     		return true;
-    	else if (west != 0 && west != 50 && west != 8 && west != 9)
+    	else if (west != 0 && west != 50 && west != 8 && west != 9 && west != 78)
     		return true;
 		
 		return false;
@@ -215,10 +266,51 @@ public class TorchMissile extends JavaPlugin
 			{
 				WO = Boolean.parseBoolean(TorchConfig.props.getProperty("Walls_Only"));
 			}
+			if (TorchConfig.containsKey("Missile_Glow"))
+			{
+				Missile_Glow = Boolean.parseBoolean(TorchConfig.props.getProperty("Missile_Glow"));
+			}
+			/**
+			if (TorchConfig.containsKey("Missile_Speed"))
+			{
+				Missile_Speed = TorchConfig.props.getProperty("Missile_Speed");
+			}
+			*/
 		}
 		catch (IOException ioe)
 		{
 			TorchConfig.saveDefaultSettings();
+		}
+	}
+	private void setupPermissions()
+	{
+	    Plugin test = getServer().getPluginManager().getPlugin("Permissions");
+	    if (Permissions == null)
+	    {
+	    	if (test != null)
+	    	{
+	    		Permissions = ((Permissions)test);
+	    	}
+	    }
+	}
+	@SuppressWarnings("static-access")
+	public static String checkPermissions(Player player)
+	{
+		if (Permissions != null)
+		{
+			if (Permissions.Security.permission(player, "torchmissile.Normal"))
+				return "normal";
+			else if (Permissions.Security.permission(player, "torchmissile.SingleMode"))
+				return "single";
+			else
+				return "nothing";
+		}
+		else
+		{
+			if (player.isOp())
+				return "normal";
+			else
+				return "nothing";
 		}
 	}
 }
