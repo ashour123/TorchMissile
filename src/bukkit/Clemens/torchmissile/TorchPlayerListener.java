@@ -15,7 +15,8 @@ public class TorchPlayerListener extends PlayerListener
 		{
 			if (stack.getTypeId() == 50)
 			{
-				TorchMissile.AddClick(player);
+				if (player.isSneaking())
+					TorchMissile.AddClick(player);
 			}
 		}
 	}

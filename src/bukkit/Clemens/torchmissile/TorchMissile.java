@@ -26,8 +26,9 @@ public class TorchMissile extends JavaPlugin
 	static Server server;
 	static Plugin plugin;
 	static int size = 5;
-	static int Missile_Range = 250;
+	static int Missile_Range = 200;
 	static boolean WO = true;
+	static boolean Only_One = false;
 	static boolean Missile_Glow = true;
 	//static String Missile_Speed = "normal";
 	static List<Player> Clicks = new ArrayList<Player>();
@@ -86,7 +87,7 @@ public class TorchMissile extends JavaPlugin
 		if (Clicks.contains(player))
 		{
 			Clicks.remove(player);
-			if (checkPermissions(player) == "normal" || checkPermissions(player) == "single")
+			if (checkPermissions(player) == "normal" || checkPermissions(player) == "single" || checkPermissions(player) == "one")
 			{
 				ShootTorchMissile(player);
 				RemoveItem(player, 50);
@@ -124,35 +125,48 @@ public class TorchMissile extends JavaPlugin
 		List<Block> Blocks_tmp = new ArrayList<Block>();
 		Blocks_tmp = player.getLineOfSight(null, Missile_Range);
 		final List<Block> Blocks = Blocks_tmp;
+		boolean schon = false;
 		for (int i = 3; i < Blocks.size(); i++)
 		{
-			final Block bl = Blocks.get(i);
-			final int id = bl.getTypeId();
-			server.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable()
-	    	{
-				public void run()
-				{
-					if (Missile_Glow)
-						bl.setTypeId(89);
-					else
-						bl.setTypeId(49);
-				}
-	    	}, 0L + time);
-			server.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable()
-	    	{
-				public void run()
-				{
-					bl.setTypeId(id);
-					if (Blocks.indexOf(bl) == Blocks.size() - 1)
+			if (Blocks.get(i).getTypeId() == 89)
+			{
+				schon = true;
+			}
+		}
+		if (schon == false)
+		{
+			for (int i = 3; i < Blocks.size(); i++)
+			{
+				final Block bl = Blocks.get(i);
+				final int id = bl.getTypeId();
+				final byte dat = bl.getData();
+				server.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable()
+		    	{
+					public void run()
 					{
-						if (checkPermissions(player) == "normal")
-							Torch_Explosion(bl);
-						else if (checkPermissions(player) == "single")
-							SingleTorch(bl);
+						if (Missile_Glow)
+							bl.setTypeId(89);
+						else
+							bl.setTypeId(49);
 					}
-				}
-	    	}, lo + time);
-			time = time + plus;
+		    	}, 0L + time);
+				server.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable()
+		    	{
+					public void run()
+					{
+						bl.setTypeId(id);
+						bl.setData(dat);
+						if (Blocks.indexOf(bl) == Blocks.size() - 1)
+						{
+							if (checkPermissions(player) == "normal")
+								Torch_Explosion(bl);
+							else if (checkPermissions(player) == "single" || checkPermissions(player) == "one")
+								SingleTorch(bl);
+						}
+					}
+		    	}, lo + time);
+				time = time + plus;
+			}
 		}
 	}
 	private static void SingleTorch(Block bl)
@@ -270,6 +284,14 @@ public class TorchMissile extends JavaPlugin
 			{
 				Missile_Glow = Boolean.parseBoolean(TorchConfig.props.getProperty("Missile_Glow"));
 			}
+			if (TorchConfig.containsKey("Missile_Range"))
+			{
+				Missile_Range = Integer.parseInt(TorchConfig.props.getProperty("Missile_Range"));
+			}
+			if (TorchConfig.containsKey("OnlyOneTorch_Mode"))
+			{
+				Only_One = Boolean.parseBoolean(TorchConfig.props.getProperty("OnlyOneTorch_Mode"));
+			}
 			/**
 			if (TorchConfig.containsKey("Missile_Speed"))
 			{
@@ -308,7 +330,12 @@ public class TorchMissile extends JavaPlugin
 		else
 		{
 			if (player.isOp())
-				return "normal";
+			{
+				if (Only_One == true)
+					return "one";
+				else
+					return "normal";
+			}
 			else
 				return "nothing";
 		}
